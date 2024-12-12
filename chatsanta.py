@@ -1,4 +1,71 @@
 import socket
+import os
+
+# Define the questions and answers
+questions = [
+    # General Christmas culture questions
+    {"question": "Quel est le personnage biblique celebre auquel la fête de Noel est associee ?", "answer": "jesus"},
+    {"question": "Quel celebre personnage est associe au Pere Noel en Laponie ?", "answer": "nicolas"},
+    {"question": "Quel jour celebre-t-on Noel dans la tradition chretienne ?", "answer": "25 decembre"},
+    {"question": "Quel pays a offert le celebre sapin de Noel installe chaque annee à Trafalgar Square ?", "answer": "Norvege"},
+    {"question": "Quelle est la couleur traditionnelle des vetements du Pere Noel ?", "answer": "rouge"},
+    
+    # Technical and humorous questions
+    {"question": "En steganographie, quel outil est utilise pour cacher des donnees dans une image ?", "answer": "steghide"},
+    {"question": "Quel est le registre utilise pour pointer vers la pile en exploitation binaire ?", "answer": "esp"},
+    {"question": "Quel est le code HTTP pour une redirection permanente ?", "answer": "301"},
+    {"question": "Quelle methode de chiffrement est utilisee dans RSA ?", "answer": "asymetrique"},
+    
+    # The final magic word question
+    {"question": "Quel est le mot magique ?", "answer": ["Flag", "Wish", "Gift"]}  # Accept multiple answers
+]
+
+# The final flag
+flag = "ChristmasCTF{0zu_Gift_f0r_S4N74}"
+
+# Function to handle client communication
+def handle_client(client_socket):
+    client_socket.send(b"Bienvenue dans Chat with Santa!\n")
+    client_socket.send(b"Repondez correctement aux 10 questions pour obtenir le flag !\n\n")
+
+    for i, q in enumerate(questions):
+        client_socket.send(f"Question {i+1}: {q['question']}\n".encode())
+        response = client_socket.recv(1024).decode().strip()
+        # For the final question, check if the response matches any allowed answerc
+        if isinstance(q['answer'], list):
+            if response.lower() not in [ans.lower() for ans in q['answer']]:
+                client_socket.send(b"Mauvaise reponse! Essayez encore!\n")
+                client_socket.close()
+                return
+        else:
+            if response.lower() != q['answer'].lower():
+                client_socket.send(b"Mauvaise reponse! Essayez encore!\n")
+                client_socket.close()
+                return
+
+    client_socket.send(b"Bravo! Voici votre flag: " + flag.encode() + b"\n")
+    client_socket.close()
+
+# Set up the server
+def start_server():
+    host = "0.0.0.0"
+    port = int(os.getenv("PORT", 12345))
+
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((host, port))
+    server.listen(5)
+    print(f"Chat with Santa en écoute sur le port {port}...")
+
+    while True:
+        client_socket, addr = server.accept()
+        print(f"Connexion reçue de {addr}")
+        handle_client(client_socket)
+
+if __name__ == "__main__":
+    start_server()
+
+
+"""import socket
 import random
 import os
 
@@ -45,4 +112,4 @@ def start_server():
         handle_client(client_socket)
 
 if __name__ == "__main__":
-    start_server()
+    start_server()"""
