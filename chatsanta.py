@@ -135,7 +135,7 @@ def handle_client(client_socket):
 
 def start_server():
     host = "0.0.0.0"
-    port = int(os.getenv("PORT", 1245))
+    port = int(os.getenv("PORT", 12345))
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((host, port))
