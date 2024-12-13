@@ -1,4 +1,162 @@
 import socket
+import random
+import os
+import threading
+
+def generate_questions():
+    a = random.randint(1000, 10000)
+    b = random.randint(1, 100)
+    c = random.randint(1, 4)
+    f = (a - b) ** c - 25 * c
+    return [
+        {"question": "Vrai ou Faux : Le Père Noël est originaire de Finlande.", "answer": "faux"},
+        {"question": "Quel est le célèbre personnage biblique auquel la fête de Noël est associée ? Ex: Marie", "answer": "jesus"},
+        {"question": "Quel est le prénom du célèbre personnage  associé au Père Noël en Laponie ? Ex: Nicolas", "answer": "nicolas"},
+        {"question": "Quel jour célèbre-t-on Noël dans la tradition chrétienne ? Ex: 24 Mars", "answer": "25 decembre"},
+        {"question": "Quelle est la couleur traditionnelle des vêtements du Père Noël ? Ex: Bleu", "answer": "rouge"},
+        {"question": "Vrai ou Faux : La fête de Noël est célébrée au Japon.", "answer": "vrai"},
+        {"question": "Quel pays a offert le célèbre sapin de Noël installé chaque année à Trafalgar Square ? Ex: Suède", "answer": "norvege"},
+        {"question": "Comment appelle-t-on la bûche traditionnelle de Noël ? Ex: Croissant", "answer": "gateau"},
+        {"question": "Quel est le numéro de téléphone à contacter pour joindre les gestionnaires du Trafalgar Square sur maps ? Ex: +229 60000007", "answer": "+44 2079834750"},
+        {"question": "Vrai ou Faux : Le film *Maman j'ai raté l'avion* est un classique de Noël.", "answer": "vrai"},
+        {"question": "En stéganographie, quel outil populaire est utilisé pour cacher et extraire des données dans une image ? Ex: stegosolve", "answer": "steghide"},
+        {"question": "Quel registre est utilisé pour pointer vers la pile en exploitation binaire en architecture x86-64 ? Ex: RAX", "answer": "rsp"},
+        {"question": "Quel est le code HTTP pour une redirection permanente ? Ex: 302", "answer": "301"},
+        {"question": "Quelle méthode de chiffrement est utilisée dans RSA ? Ex: Symetrique", "answer": "asymetrique"},
+        {"question": "Quel port est typiquement utilisé pour HTTPS ? Ex: 80", "answer": "443"},
+        {"question": "Vrai ou Faux : Un ransomware chiffre les fichiers d’un système et demande aux victimes de payer des rancons.", "answer": "vrai"},
+        {"question": "Quel outil populaire est utilisé pour effectuer des scans réseau ? Ex: masscan", "answer": "nmap"},
+        {f"question": f"Combien font ({a} - {b})**{c} - 25*{c} ? Ex: 1458", "answer": f"{f}"},
+        {"question": "Quel outil de la NSA est souvent utilisé pour analyser des fichiers binaires ? Ex: IDA", "answer": "ghidra"},
+        {"question": "Vrai ou Faux : Un honeypot est une stratégie offensive.", "answer": "faux"},
+        {"question": "Quel est le mot magique ? Ex: Wish", "answer": ["Flag", "Wish", "Gift", "Cadeau"]},
+    ]
+
+good_responses = [
+    "Hohoho! Bravo, petit génie!",
+    "Ah, tu fais honneur à l'atelier du Père Noël!",
+    "Formidable! Tu mérites un cadeau spécial.",
+    "Incroyable! Je suis impressionné.",
+    "Tu as fait sourire le Père Noël! Bien joué!",
+]
+
+bad_responses = [
+    "Hohoho... essaie encore, petit renne.",
+    "Ce n'est pas la bonne réponse, mais je crois en toi!",
+    "Oh, c'est une erreur... mais tu y arriveras.",
+    "Mauvaise réponse! On continue quand même!",
+    "Le Père Noël t'encourage à réessayer!",
+]
+
+flag = "CMCTF{0zu_G1f7_f0r_S4N74}"
+
+def handle_client(client_socket):
+    def colored_text(text, color_code):
+        """
+    Applique une couleur au texte en utilisant les séquences d'échappement ANSI.
+    :param text: Le texte à colorier.
+    :param color_code: Le code de couleur ANSI.
+    :return: Le texte coloré.
+    """
+        return f"\033[{color_code}m{text}\033[0m"
+    def timeout_handler():
+        client_socket.send(b"\nTemps ecoule! Hohoho...\n")
+        client_socket.close()
+    christmas_banner = '''
+             * * * * * * * * * * * * * * * * * * *
+           *                                    *
+         *   Wishing you a Merry Christmas     *
+       *      and a Happy New Year!           *
+     *   May your days be filled with joy!   *
+   *                                        *
+  * * * * * * * * * * * * * * * * * * * * * 
+'''
+    christmas_banner = """ 
+         X
+         ^
+        /*\\
+       /*o*\\
+      /*o*o*\\
+     /*o*o*o*\\
+    /*o*o*o*o*\\
+   /*o*o*o*o*o*\\
+  /*o*o*o*o*o*o*\\
+ /*o*o*o*o*o*o*o*\\
+/*o*o*o*o*o*o*o*o*\\
+        | |
+        
+              * * * * * * * * * * * * * * * * * * *
+           *                                    *
+         *   Wishing you a Merry Christmas     *
+       *      and a Happy New Year!           *
+     *   May your days be filled with joy!   *
+   *                                        *
+  * * * * * * * * * * * * * * * * * * * * * 
+        """
+    client_socket.send(colored_text(christmas_banner, '32').encode()) 
+    client_socket.send(b"Hohoho! Bienvenue dans Chat with Santa! \xf0\x9f\x8e\x85\n")
+    client_socket.send(b"Reponds correctement aux 21 questions du Pere Noel pour obtenir son cadeau magique!\n\n")
+    questions = generate_questions()
+
+    for i, q in enumerate(questions):
+        timer = threading.Timer(2, timeout_handler)  
+        timer.start()
+
+        client_socket.send(f"Question {i+1}: {q['question']}\n".encode())
+        response = client_socket.recv(1024).decode().strip()
+
+        timer.cancel() 
+
+        if isinstance(q['answer'], list):
+            if response.lower() not in [ans.lower() for ans in q['answer']]:
+                try:
+                    client_socket.send(f"{random.choice(bad_responses)}\n".encode())
+                except OSError:
+                    print(f"Connexion fermée avant la réponse à la question {i+1}.")
+                client_socket.close()
+                return
+        else:
+            if response.lower() != q['answer'].lower():
+                try:
+                    client_socket.send(f"{random.choice(bad_responses)}\n".encode())
+                except OSError:
+                    print(f"Connexion fermée avant la réponse à la question {i+1}.")
+                client_socket.close()
+                return
+
+        client_socket.send(f"{random.choice(good_responses)}\n".encode())
+
+    try:
+        client_socket.send(b"\xf0\x9f\x8e\x89 Bravo! Voici votre flag magique : " + flag.encode() + b"\n")
+    except OSError:
+        print("Connexion fermée avant d'envoyer le flag.")
+
+    client_socket.close()
+
+def start_server():
+    host = "0.0.0.0"
+    port = int(os.getenv("PORT", 1245))
+
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((host, port))
+    server.listen(5)
+    print(f"Chat with Santa en écoute sur le port {port}... \xf0\x9f\x8e\x84")
+
+    while True:
+        client_socket, addr = server.accept()
+        print(f"Connexion reçue de {addr}")
+        threading.Thread(target=handle_client, args=(client_socket,)).start()
+
+if __name__ == "__main__":
+    start_server()
+
+
+
+
+
+
+
+"""import socket
 import os
 
 # Define the questions and answers
@@ -63,7 +221,7 @@ def start_server():
 
 if __name__ == "__main__":
     start_server()
-
+"""
 
 """import socket
 import random
